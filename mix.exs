@@ -9,9 +9,8 @@ defmodule Otel.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       releases: [
-        roll_dice: [
-          applications: [opentelemetry: :temporary]
-        ]
+        otel: [
+          applications: [opentelemetry_exporter: :permanent, opentelemetry: :temporary]        ]
       ],
       aliases: aliases(),
       deps: deps()
@@ -64,12 +63,13 @@ defmodule Otel.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
-      {:opentelemetry, "~> 1.3"},
+      {:opentelemetry, "~> 1.5"},
       {:opentelemetry_api, "~> 1.2"},
-      {:opentelemetry_exporter, "~> 1.6"},
+      {:opentelemetry_exporter, "~> 1.8"},
       {:opentelemetry_phoenix, "~> 1.1"},
       {:opentelemetry_cowboy, "~> 0.2"},
-      {:opentelemetry_ecto, "~> 1.2"}
+      {:opentelemetry_ecto, "~> 1.2"},
+      {:open_telemetry_decorator, "~> 1.5"}
     ]
   end
 
