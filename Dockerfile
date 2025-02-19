@@ -11,25 +11,32 @@
 #   - https://pkgs.org/ - resource for finding needed packages
 #   - Ex: hexpm/elixir:1.16.2-erlang-25.3.2.8-debian-bullseye-20240130-slim
 #
-ARG ELIXIR_VERSION=1.16.2
-ARG OTP_VERSION=25.3.2.8
-ARG DEBIAN_VERSION=bullseye-20240130-slim
+# ARG ELIXIR_VERSION=1.16.2
+# ARG OTP_VERSION=25.3.2.8
+# ARG DEBIAN_VERSION=bullseye-20240130-slim
 
-ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
-ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
+# ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
+# ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 
-FROM ${BUILDER_IMAGE} as builder
+ARG ELIXIR_IMAGE=registry.cmmint.net/cmm/ubuntu20-elixir1144:latest
 
+FROM ${ELIXIR_IMAGE} AS base
+
+USER root
 # install build dependencies
-RUN apt-get update -y && apt-get install -y build-essential git \
-    && apt-get clean && rm -f /var/lib/apt/lists/*_*
+RUN apt-get update 
+RUN apt-get install -y \
+  build-essential \
+  git
+RUN apt-get clean && \
+  rm -f /var/lib/apt/lists/*_*
 
 # prepare build dir
 WORKDIR /app
 
 # install hex + rebar
 RUN mix local.hex --force && \
-    mix local.rebar --force
+  mix local.rebar --force
 
 # set build ENV
 ENV MIX_ENV="prod"
@@ -49,27 +56,41 @@ COPY priv priv
 
 COPY lib lib
 
-COPY assets assets
+# COPY assets assets
 
 # compile assets
-RUN mix assets.deploy
-
-# Compile the release
-RUN mix compile
+# RUN mix assets.deploy
 
 # Changes to config/runtime.exs don't require recompiling the code
-COPY config/runtime.exs config/
+COPY config/ config/
 
-COPY rel rel
-RUN mix release
+# COPY rel rel
+# RUN mix release
+
+FROM base as builder
+ARG MIX_ENV=prod
+ENV MIX_ENV="${MIX_ENV}"
+RUN --mount=type=ssh mix deps.get --only $MIX_ENV
+RUN mix deps.compile
+
+COPY priv priv
+
+COPY lib lib
+RUN mix compile
+
+RUN MIX_ENV=prod mix phx.digest
+RUN MIX_ENV=prod mix release
+COPY . .
 
 # start a new build stage so that the final image will only contain
 # the compiled release and other runtime necessities
-FROM ${RUNNER_IMAGE}
+FROM ${ELIXIR_IMAGE} as runner
 
-RUN apt-get update -y && \
-  apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
-  && apt-get clean && rm -f /var/lib/apt/lists/*_*
+USER root
+
+RUN apt-get update -y
+RUN apt-get install -y bash libstdc++6 openssl libncurses5 locales ca-certificates
+RUN apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -94,4 +115,4 @@ USER nobody
 # above and adding an entrypoint. See https://github.com/krallin/tini for details
 # ENTRYPOINT ["/tini", "--"]
 
-CMD ["/app/bin/server"]
+RUN mix phx.server
