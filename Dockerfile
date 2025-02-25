@@ -40,7 +40,7 @@ RUN mix compile
 #     mix phx.digest
 
 # Create the release
-RUN mix release
+RUN mix phx.gen.release
 
 # Expose the port the app runs on
 EXPOSE 4000

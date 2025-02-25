@@ -16,23 +16,20 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
-if System.get_env("PHX_SERVER") do
+# if System.get_env("PHX_SERVER") do
   config :otel, OtelWeb.Endpoint, server: true
-end
+# end
 
 if config_env() == :prod do
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :otel, Otel.Repo,
     # ssl: true,
-    url: database_url,
+    username: System.get_env("DB_USER"),
+    password: System.get_env("DB_PASS"),
+    hostname: System.get_env("DB_HOST"),
+    database: "postgres",
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     socket_options: maybe_ipv6
 
@@ -48,7 +45,7 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  host = System.get_env("HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
   config :otel, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")

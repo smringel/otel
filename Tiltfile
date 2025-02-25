@@ -81,7 +81,7 @@ allow_k8s_contexts(k8s_context())
 load('ext://git_resource', 'git_checkout')
 git_checkout('git@git.innova-partners.com:devops/tilt.git#main', ".git-sources/tilt")
 
-load('.git-sources/tilt/base/Tiltfile', 'opinionated_elixir_app_setup')
+load('.git-sources/tilt/base/Tiltfile', 'opinionated_elixir_app_setup', 'cluster_domain')
 
 # Load UI buttons
 load('.git-sources/tilt/base/Tiltfile.ui',
@@ -126,4 +126,23 @@ opinionated_elixir_app_setup(
   helm_set=helm_set,
   ignore=ignore,
   image_build_paths=image_build_paths,
+)
+
+k8s_resource(
+  workload='web',
+  labels=['api'],
+  links=[
+      link('https://otel.%s/' % cluster_domain(), 'otel-dev')
+  ],
+  # Starts dependencies first.
+  resource_deps=['postgres']
+)
+
+k8s_resource(
+  workload='otel-postgres', # change this to your app name
+  new_name='postgres',
+  labels=['database'],
+  port_forwards=[
+    port_forward(9001, 5432)
+  ]
 )
