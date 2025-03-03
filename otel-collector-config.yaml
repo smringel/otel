@@ -1,0 +1,26 @@
+# otel-collector-config.yaml
+
+# OpenTelemetry Collector config that receives OTLP and exports to Datadog
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+exporters:
+  debug:
+  datadog:
+    api:
+      key: "<YOUR_DATADOG_API_KEY>"
+    site: "datadoghq.com"
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, datadog]
